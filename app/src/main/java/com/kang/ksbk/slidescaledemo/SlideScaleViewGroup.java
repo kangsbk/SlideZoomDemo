@@ -2,11 +2,12 @@ package com.kang.ksbk.slidescaledemo;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Point;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
 
@@ -25,6 +26,10 @@ public class SlideScaleViewGroup extends ViewGroup {
     private static final int MINHEIGHT = 200;
     private int zoomwidth = DEFWIDTH;//实际宽度
     private int zoomheight = DEFHEIGHT;//实际高度
+    private int mvMaxheight;//移动高度界限
+    private int mvMaxwidth;//移动宽度界限
+    private int screenwidth;//屏幕宽度
+    private int screenheight;//屏幕高度
 
     Context context;
     private float startX;//起始x轴位置
@@ -61,6 +66,8 @@ public class SlideScaleViewGroup extends ViewGroup {
             child.layout(left,top,left +zoomwidth,top + zoomheight);
             left = left + zoomwidth ;
         }
+        mvMaxheight = zoomheight;
+        mvMaxwidth = left;
     }
 
     @Override
@@ -78,6 +85,11 @@ public class SlideScaleViewGroup extends ViewGroup {
     }
 
     private void init() {
+        WindowManager windowManager = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
+        Point point = new Point();
+        windowManager.getDefaultDisplay().getSize(point);
+        screenwidth = point.x;
+        screenheight = point.y;
         LinearLayout linearLayout1 = new LinearLayout(context);
         linearLayout1.setBackgroundColor(Color.RED);
         linearLayout1.addView(new Button(context));
@@ -108,11 +120,24 @@ public class SlideScaleViewGroup extends ViewGroup {
                 break;
             case MotionEvent.ACTION_MOVE:
                 if (touchType ==TYPE_MOVE){
-                positionX = event.getX();
-                positionY = event.getY();
-                scrollBy((int)(positionX-startX),(int)(positionY-startY));
-                startX =positionX;
-                startY =positionY;
+                    positionX = event.getX();
+                    positionY = event.getY();
+                    scrollBy((int)(positionX-startX),(int)(positionY-startY));
+                    //控制移动范围
+                    if (getScrollX()<=0){
+                        scrollTo(0,getScrollY());
+                    }
+                    if (getScrollY()<=0){
+                        scrollTo(getScrollX(),0);
+                    }
+                    if (getScrollY()>= mvMaxheight -screenheight){
+                        scrollTo(getScrollX(),mvMaxheight -screenheight);
+                    }
+                    if (getScrollX()>=mvMaxwidth-screenwidth){
+                        scrollTo(mvMaxwidth-screenwidth,getScrollY());
+                    }
+                    startX =positionX;
+                    startY =positionY;
                 }else if (touchType==TYPE_ZOOM){
                     positionDis = getDistance(event);
                     //计算缩放比例
